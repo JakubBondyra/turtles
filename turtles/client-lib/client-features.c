@@ -59,11 +59,11 @@ int get_line (int port, char* address, char* commands[], int ccount)
 	memset(buf, 0x00, COMMANDLEN);
 	if (fgets(buf, COMMANDLEN, stdin) == NULL)
 		return 0;
-	
-	len = strlen(buf);	
+	buf[strlen(buf)-1] = '\0';
 	for (i=0;i<ccount;i++)
 	{
-		if (len == strlen(commands[i]) && !strncmp(buf, commands[i], len))
+		len = strlen(commands[i]);
+		if (!strncmp(buf, commands[i], len))
 		{
 			get_handler (port, address, commands[i]);
 			return 1;
@@ -74,51 +74,51 @@ int get_line (int port, char* address, char* commands[], int ccount)
 
 void get_handler (int port, char* address, char* command)
 {
-	if (!strncmp (command, QUITCOMMAND, strlen(command)))
+	if (!strncmp (command, QUITCOMMAND, strlen(QUITCOMMAND)))
 	{
 		quit_handler();
 	}
-	else if (!strncmp(command, ADDTURTLECOMMAND, strlen(command)))
+	else if (!strncmp(command, ADDTURTLECOMMAND, strlen(ADDTURTLECOMMAND)))
 	{
 		add_turtle_handler (port, address);
 	}
-	else if (!strncmp(command, ADDTRACKCOMMAND, strlen(command)))
+	else if (!strncmp(command, ADDTRACKCOMMAND, strlen(ADDTRACKCOMMAND)))
 	{
 		add_track_handler (port, address);
 	}
-	else if (!strncmp(command, STARTRACECOMMAND, strlen(command)))
+	else if (!strncmp(command, STARTRACECOMMAND, strlen(STARTRACECOMMAND)))
 	{
 		start_race_handler (port, address);
 	}
-	else if (!strncmp(command, ENDRACECOMMAND, strlen(command)))
+	else if (!strncmp(command, ENDRACECOMMAND, strlen(ENDRACECOMMAND)))
 	{
 		end_race_handler (port, address);
 	}
-	else if (!strncmp(command, RACENEWSCOMMAND, strlen(command)))
+	else if (!strncmp(command, RACENEWSCOMMAND, strlen(RACENEWSCOMMAND)))
 	{
 		race_news_handler (port, address);
 	}
-	else if (!strncmp(command, NEWSEASONCOMMAND, strlen(command)))
+	else if (!strncmp(command, NEWSEASONCOMMAND, strlen(NEWSEASONCOMMAND)))
 	{
 		new_season_handler (port, address);
 	}
-	else if (!strncmp(command, LIVEREQUESTCOMMAND, strlen(command)))
+	else if (!strncmp(command, LIVEREQUESTCOMMAND, strlen(LIVEREQUESTCOMMAND)))
 	{
 		live_request_handler (port, address);
 	}
-	else if (!strncmp(command, SEQREQUESTCOMMAND, strlen(command)))
+	else if (!strncmp(command, SEQREQUESTCOMMAND, strlen(SEQREQUESTCOMMAND)))
 	{
 		seq_request_handler (port, address);
 	}
-	else if (!strncmp(command, TABREQUESTCOMMAND, strlen(command)))
+	else if (!strncmp(command, TABREQUESTCOMMAND, strlen(TABREQUESTCOMMAND)))
 	{
 		tab_request_handler (port, address);
 	}
-	else if (!strncmp(command, GETTURTLESCOMMAND, strlen(command)))
+	else if (!strncmp(command, GETTURTLESCOMMAND, strlen(GETTURTLESCOMMAND)))
 	{
 		get_turtles_handler (port, address);
 	}
-	else if (!strncmp(command, GETTRACKSCOMMAND, strlen(command)))
+	else if (!strncmp(command, GETTRACKSCOMMAND, strlen(GETTRACKSCOMMAND)))
 	{
 		get_tracks_handler (port, address);
 	}
@@ -138,10 +138,10 @@ void add_turtle_handler (int port, char* address)
 	memset(name, 0x00, NAMELEN);
 	get_int("Please specify id of turtle", &id);
 	get_string("Please specify name of turtle", &name, NAMELEN);
-	get_int("Please specify weight of turtle", &age);
+	get_int("Please specify age of turtle", &age);
 	get_int("Please specify weight of turtle", &weight);
 	memset(buf, 0x00, BUFLEN);
-	len = snprintf(buf, BUFLEN, "%d;%d:%s:%d:%d$", ADDTURTLEID, id, name, age, weight);
+	len = snprintf(buf, BUFLEN, "%d;%d:%s:%d:%d%c", ADDTURTLEID, id, name, age, weight, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 	free(name);
@@ -157,7 +157,7 @@ void add_track_handler (int port, char* address)
 	get_int("Please specify number of laps", &laps);
 	get_int("Please specify length of track", &length);
 	memset(buf, 0x00, BUFLEN);
-	len = snprintf(buf, BUFLEN, "%d;%s:%d:%d:%d$", ADDTRACKID, name, chpoints, laps, length);
+	len = snprintf(buf, BUFLEN, "%d;%s:%d:%d:%d%c", ADDTRACKID, name, chpoints, laps, length, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 	free(name);
@@ -168,7 +168,7 @@ void start_race_handler (int port, char* address)
 	int len = 0;
 	char* name = (char*) jb_malloc (sizeof(char)*NAMELEN);
 	get_string("Please specify name of track", &name, NAMELEN);
-	len = snprintf(buf, BUFLEN, "%d;%s$", STARTRACEID, name);
+	len = snprintf(buf, BUFLEN, "%d;%s%c", STARTRACEID, name, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 	free(name);
@@ -178,7 +178,7 @@ void end_race_handler (int port, char* address)
 	char* buf = (char*) jb_malloc (sizeof(char) * BUFLEN);
 	int len = 0;
 	memset(buf, 0x00, BUFLEN);
-	len = snprintf(buf, BUFLEN, "%d$", ENDRACEID);
+	len = snprintf(buf, BUFLEN, "%d%c", ENDRACEID, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 }
@@ -190,7 +190,7 @@ void race_news_handler (int port, char* address)
 	get_int("Please specify turtle id", &who);
 	get_int("Please specify checkpoint", &where);
 	memset(buf, 0x00, BUFLEN);
-	len = snprintf(buf, BUFLEN, "%d;%d:%d$", RACENEWSID, who, where);
+	len = snprintf(buf, BUFLEN, "%d;%d:%d%c", RACENEWSID, who, where, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 }
@@ -199,7 +199,7 @@ void new_season_handler (int port, char* address)
 	char* buf = (char*) jb_malloc (sizeof(char) * BUFLEN);
 	int len = 0;
 	memset(buf, 0x00, BUFLEN);
-	len = snprintf(buf, BUFLEN, "%d$", NEWSEASONID);
+	len = snprintf(buf, BUFLEN, "%d%c", NEWSEASONID, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 }
@@ -209,7 +209,7 @@ void live_request_handler (int port, char* address)
 	char* buf = (char*) jb_malloc (sizeof(char) * BUFLEN);
 	int len = 0;
 	memset(buf, 0x00, BUFLEN);
-	len = snprintf(buf, BUFLEN, "%d$", LIVEREQUESTID);
+	len = snprintf(buf, BUFLEN, "%d%c", LIVEREQUESTID, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 }
@@ -218,7 +218,7 @@ void seq_request_handler (int port, char* address)
 	char* buf = (char*) jb_malloc (sizeof(char) * BUFLEN);
 	int len = 0;
 	memset(buf, 0x00, BUFLEN);
-	len = snprintf(buf, BUFLEN, "%d$", SEQREQUESTID);
+	len = snprintf(buf, BUFLEN, "%d%c", SEQREQUESTID, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 }
@@ -227,7 +227,7 @@ void tab_request_handler (int port, char* address)
 	char* buf = (char*) jb_malloc (sizeof(char) * BUFLEN);
 	int len = 0;
 	memset(buf, 0x00, BUFLEN);
-	len = snprintf(buf, BUFLEN, "%d$", TABREQUESTID);
+	len = snprintf(buf, BUFLEN, "%d%c", TABREQUESTID, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 }
@@ -236,7 +236,7 @@ void get_turtles_handler (int port, char* address)
 	char* buf = (char*) jb_malloc (sizeof(char) * BUFLEN);
 	int len = 0;
 	memset(buf, 0x00, BUFLEN);
-	len = snprintf(buf, BUFLEN, "%d$", GETTURTLESID);
+	len = snprintf(buf, BUFLEN, "%d%c", GETTURTLESID, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 }
@@ -245,7 +245,7 @@ void get_tracks_handler (int port, char* address)
 	char* buf = (char*) jb_malloc (sizeof(char) * BUFLEN);
 	int len = 0;
 	memset(buf, 0x00, BUFLEN);
-	len = snprintf(buf, BUFLEN, "%d$", GETTRACKSID);
+	len = snprintf(buf, BUFLEN, "%d%c", GETTRACKSID, MSG_DELIMITER);
 	send_message(port, address, buf, len);
 	free(buf);
 }
@@ -255,7 +255,8 @@ void send_message (int port, char* address, char* buf, int count)
 	/* send message feature */
 	int sock;
 	jb_internet_stream_socket_client(&sock, address, (uint16_t) port);
-	socket_write(sock, buf, count);
+	fprintf (stdout, "Trying to write: \"%s\" (total %d bytes)\n", buf, count);
+	dollar_write(sock, buf, count);
 	handle_response(sock);
 }
 
@@ -264,14 +265,14 @@ void handle_response (int sock)
 	char* buf = (char*) jb_malloc (sizeof(char) * BUFLEN);
 	int msgid;
 	memset(buf, 0x00, BUFLEN);
-	socket_read(sock, buf, BUFLEN);
+	dollar_read(sock, buf, BUFLEN);
 	if (strlen(buf) < 2)
 	{
 		fprintf (stdout, "Error of communication (too short message)\n");
 		free(buf);
 		return;
 	}
-	msgid = buf[0]*10 + (int)buf[1];
+	msgid = get_msg_type(buf);
 	if (msgid == ERRID)
 	{
 		fprintf(stdout, "Server reported error.\n");
@@ -280,13 +281,78 @@ void handle_response (int sock)
 	{
 		fprintf(stdout, "Success.\n");
 	}
-	else /* GET TABLE, GET SEQUENCE, GET ALL TURTLES or GET ALL TRACKS */
+	else if (msgid == COMMERROR)
+	{
+		fprintf (stderr, "Communication error. Malformed buffer. \n");
+		fflush(stderr);
+	}
+	else if (msgid == GETTURTLESID || msgid == GETTRACKSID)
+	{
+		char* buf2 = (char*) jb_malloc (sizeof(char) * BUFLEN);
+		memset(buf2, 0x00, BUFLEN);
+		sscanf(buf, "%*d;%[^$]", buf2);
+		fprintf (stdout,"Result:\n");
+		if (msgid==GETTURTLESID)
+		{
+			print_formatted_turtles(buf2);
+		}
+		else
+		{
+			print_formatted_tracks(buf2);
+		}
+		free(buf2);
+	}
+	else /* GET TABLE, GET SEQUENCE, LIVE RELATION (FOR NOW) */
 	{
 		char buf2[BUFLEN];
 		memset(buf2, 0x00, BUFLEN);
-		sscanf(buf, "%d;%s$", &msgid, buf2);
+		sscanf(buf, "%*d;%[^$]", buf2);
 		fprintf (stdout,"Result:\n");
 		fprintf (stdout, "%s", buf2);
 	}
+	jb_close(sock);
 	free(buf);
+}
+
+void print_formatted_turtles (char* buf)
+{
+	char* p;
+	int age, weight, id, pts;
+	char name [BUFLEN];
+
+	fprintf (stdout, "%6s%20s%6s%7s%8s\n", "id", "name", "age", "weight", "points");
+	p = strtok(buf, ";");
+	memset(name, 0x00, BUFLEN);
+	sscanf(p, "%d:%[^:]:%d:%d:%d", &id, name, &age, &weight, &pts);
+	fprintf (stdout, "%6d%20s%6d%7d%8d\n", id, name, age, weight, pts);
+	while ((p = strtok(NULL, ";")) != NULL)
+	{
+		if (strlen(p) == 0)
+			break;
+		memset(name, 0x00, BUFLEN);
+		sscanf(p, "%d:%[^:]:%d:%d:%d", &id, name, &age, &weight, &pts);
+		fprintf (stdout, "%6d%20s%6d%7d%8d\n", id, name, age, weight, pts);
+	}
+}
+void print_formatted_tracks (char* buf)
+{
+	char* p;
+	int chpoints, laps, length;
+	char name [BUFLEN];
+
+	fprintf (stdout, "%20s%10s%6s%8s\n", "name", "chpoints", "laps", "length");
+	if (buf == NULL || strlen(buf) <4)
+		return;
+	p = strtok(buf, ";");
+	memset(name, 0x00, BUFLEN);
+	sscanf(p, "%[^:]:%d:%d:%d", name, &chpoints, &laps, &length);
+	fprintf (stdout, "%20s%10d%6d%8d\n", name, chpoints, laps, length);
+	while ((p = strtok(NULL, ";")) != NULL)
+	{
+		if (strlen(p) == 0)
+			break;
+		memset(name, 0x00, BUFLEN);
+		sscanf(p, "%[^:]:%d:%d:%d", name, &chpoints, &laps, &length);
+		fprintf (stdout, "%20s:%10d:%6d:%8d\n", name, chpoints, laps, length);
+	}
 }

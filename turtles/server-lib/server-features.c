@@ -13,15 +13,14 @@ void read_turtles (char* filepath, struct turtle_group* t)
 	while (!feof(f))
 	{
 		struct turtle newTurtle;
-		
 		memset(buf, 0x00, FILELINE);
-		memset(&newTurtle, 0x00, sizeof(newTurtle));
-		
 		if (NULL == fgets(buf, FILELINE, f))
-			exit(EXIT_FAILURE);
+			continue;
 			
+		memset(&newTurtle, 0x00, sizeof(newTurtle));
+				
 		parse_turtle(&newTurtle, buf);
-		append_turtle(t, newTurtle);	
+		append_turtle(t, newTurtle);
 	}
 	
 	if (-1 == fclose(f))
@@ -30,7 +29,7 @@ void read_turtles (char* filepath, struct turtle_group* t)
 	}
 }
 
-void save_turtle (char* filepath, struct turtle t)
+void save_turtle (char* filepath, struct turtle* t)
 {
 	FILE* f = fopen (filepath, "ab+");
 	if (f==NULL)
@@ -38,7 +37,7 @@ void save_turtle (char* filepath, struct turtle t)
 		jb_print_error("fopen:");
 	}
 	
-	fprintf (f, "%d:%s:%d:%d:%d\n", t.id, t.name, t.age, t.weight, t.currPoints);
+	fprintf (f, "%d:%s:%d:%d:%d\n", t->id, t->name, t->age, t->weight, t->currPoints);
 	
 	if (-1 == fclose(f))
 	{
@@ -85,7 +84,7 @@ void read_tracks (char* filepath, struct track_group* t)
 		memset(&newTrack, 0x00, sizeof(newTrack));
 		
 		if (NULL == fgets(buf, FILELINE, f))
-			exit(EXIT_FAILURE);
+			continue;
 			
 		parse_track(&newTrack, buf);
 		
@@ -98,7 +97,7 @@ void read_tracks (char* filepath, struct track_group* t)
 	}
 }
 
-void save_track (char* filepath, struct track t)
+void save_track (char* filepath, struct track* t)
 {
 	FILE* f = fopen (filepath, "ab+");
 
@@ -107,7 +106,7 @@ void save_track (char* filepath, struct track t)
 		jb_print_error("fopen:");
 	}
 	
-	fprintf (f, "%s:%d:%d:%d:", t.name, t.checkpoint_number, t.laps, t.length);
+	fprintf (f, "%s:%d:%d:%d:", t->name, t->checkpoint_number, t->laps, t->length);
 
 	if (-1 == fclose(f))
 	{
@@ -128,42 +127,29 @@ void parse_track (struct track* t, char line[FILELINE])
 void handle_add_turtle(int fd, struct turtle_group* turtles, char buf[BUFLEN])
 {
 	struct turtle t;
-	
-	char buf2 [BUFLEN];
-	int msg;
-	memset(buf2, 0x00, BUFLEN);
 
-	sscanf(buf, "%d;%s$", &msg, buf2);
-	
-	sscanf (buf2, "%d:%s:%d:%d", &(t.id), t.name, &(t.age), &(t.weight));
+	sscanf(buf, "%*d;%d:%[^:]:%d:%d%*c", &(t.id), t.name, &(t.age), &(t.weight));
 	t.currPoints = 0;
 	t.currPos = 0;
-	
 	append_turtle(turtles, t);
-	save_turtle(TURTLEPATH, t);
+	fprintf (stdout, "Chuj\n");
+	save_turtle(TURTLEPATH, &t);
 	print_short(fd, SUCCESSID);
 }
 void handle_add_track(int fd, struct track_group* tracks, char buf[BUFLEN])
 {
 	struct track t;
-	
-	char buf2 [BUFLEN];
-	int msg;
-	memset(buf2, 0x00, BUFLEN);
 
-	sscanf(buf, "%d;%s$", &msg, buf2);
-	
-	sscanf(buf2, "%s:%d:%d:%d", t.name, &(t.checkpoint_number), &(t.laps), &(t.length));
+	sscanf(buf, "%*d;%s:%d:%d:%d%*c", t.name, &(t.checkpoint_number), &(t.laps), &(t.length));
 	
 	append_track(tracks, t);
-	save_track(TRACKPATH, t);
+	save_track(TRACKPATH, &t);
 	print_short(fd, SUCCESSID);
 }
 
 void handle_start_race(int fd, char buf[BUFLEN], int* currRace, struct track_group tr)
 {
 	char name [BUFLEN];
-	int msg;
 	int i;
 	memset(name, 0x00, BUFLEN);
 	if (*currRace != -1)
@@ -171,7 +157,7 @@ void handle_start_race(int fd, char buf[BUFLEN], int* currRace, struct track_gro
 		print_short(fd, ERRID);
 		return;
 	}
-	sscanf (buf, "%d;%s$", &msg, name);
+	sscanf (buf, "%*d;%s%*c", name);
 	for (i=0;i<tr.number;i++)
 	{
 		if (!strcmp(tr.tracks[i].name, name))
@@ -206,8 +192,8 @@ void handle_end_race (int fd, char buf[BUFLEN], int* currRace, struct turtle_gro
 
 void handle_update_race (int fd, char buf[BUFLEN], int currRace, struct turtle_group* tu, struct track_group tr)
 {
-	int msg, who, where, chpoints, pos;
-	sscanf(buf, "%d;%d:%d$", &msg, &who, &where);
+	int who, where, chpoints, pos;
+	sscanf(buf, "%*d;%d:%d%*c", &who, &where);
 	if (who>=tu->number || currRace == -1)
 	{
 		print_short(fd, ERRID);
@@ -287,9 +273,9 @@ void print_sequence (int fd, int currRace, struct track_group tr, struct turtle_
 		written = snprintf(buf+pos,BUFLEN-pos, "%s\t%d/%d\n", tu.turtles[i].name, tu.turtles[i].currPos, checkpoints);
 		pos+=written;
 	}
-	snprintf(buf+pos, BUFLEN-pos, "$");
+	snprintf(buf+pos, BUFLEN-pos, "%c", MSG_DELIMITER);
 	
-	socket_write(fd, buf, BUFLEN);
+	dollar_write(fd, buf, BUFLEN);
 }
 
 void print_table(int fd, struct turtle_group tu)
@@ -309,9 +295,9 @@ void print_table(int fd, struct turtle_group tu)
 		written = snprintf(buf+pos,BUFLEN-pos, "%s\t%d pkt\n", tu.turtles[i].name, tu.turtles[i].currPoints);
 		pos+=written;
 	}
-	snprintf(buf+pos, BUFLEN-pos, "$");
+	snprintf(buf+pos, BUFLEN-pos, "%c", MSG_DELIMITER);
 	
-	socket_write(fd, buf, BUFLEN);
+	dollar_write(fd, buf, BUFLEN);
 }
 void print_all_turtles (int fd, struct turtle_group tu)
 {
@@ -327,12 +313,12 @@ void print_all_turtles (int fd, struct turtle_group tu)
 	
 	for (i=0;i<tu.number;i++)
 	{
-		written = snprintf(buf+pos,BUFLEN-pos, "%d\t%s\t%d\t%d\n", tu.turtles[i].id, tu.turtles[i].name, tu.turtles[i].age, tu.turtles[i].weight);
+		written = snprintf(buf+pos,BUFLEN-pos, "%d:%s:%d:%d%d;", tu.turtles[i].id, tu.turtles[i].name, tu.turtles[i].age, tu.turtles[i].weight, tu.turtles[i].currPoints);
 		pos+=written;
 	}
-	snprintf(buf+pos, BUFLEN-pos, "$");
+	snprintf(buf+pos, BUFLEN-pos, "%c", MSG_DELIMITER);
 	
-	socket_write(fd, buf, BUFLEN);
+	dollar_write(fd, buf, BUFLEN);
 }
 void print_all_tracks (int fd, struct track_group tr)
 {
@@ -348,20 +334,21 @@ void print_all_tracks (int fd, struct track_group tr)
 	
 	for (i=0;i<tr.number;i++)
 	{
-		written = snprintf(buf+pos,BUFLEN-pos, "%s:%d:%d:%d\n", tr.tracks[i].name, tr.tracks[i].checkpoint_number, tr.tracks[i].laps, tr.tracks[i].length);
+		written = snprintf(buf+pos,BUFLEN-pos, "%s:%d:%d:%d;", tr.tracks[i].name, tr.tracks[i].checkpoint_number, tr.tracks[i].laps, tr.tracks[i].length);
 		pos+=written;
 	}
-	snprintf(buf+pos, BUFLEN-pos, "$");
+	snprintf(buf+pos, BUFLEN-pos, "%c", MSG_DELIMITER);
 	
-	socket_write(fd, buf, BUFLEN);
+	dollar_write(fd, buf, BUFLEN);
 }
 
 void append_turtle (struct turtle_group* tu, struct turtle newTurtle)
 {
-	struct turtle* newTurtles = (struct turtle*) jb_malloc(sizeof(struct turtle) * tu->number+1);
+	struct turtle* newTurtles = (struct turtle*) jb_malloc(sizeof(struct turtle) * (tu->number+1));
+
 	if (tu->number > 0)
 		memcpy (newTurtles, tu->turtles, sizeof(struct turtle) * tu->number);
-		
+
 	newTurtles[tu->number].age = newTurtle.age;
 	newTurtles[tu->number].weight = newTurtle.weight;
 	newTurtles[tu->number].id = newTurtle.id;
@@ -375,7 +362,8 @@ void append_turtle (struct turtle_group* tu, struct turtle newTurtle)
 
 void append_track (struct track_group* tr, struct track newTrack)
 {
-	struct track* newTracks = (struct track*) jb_malloc(sizeof(struct track) * tr->number+1);
+	struct track* newTracks = (struct track*) jb_malloc(sizeof(struct track) * (tr->number+1));
+	
 	if (tr->number > 0)
 		memcpy (newTracks, tr->tracks, sizeof(struct track) * tr->number);
 		
@@ -392,20 +380,24 @@ void print_short(int fd, int id)
 {
 	char buf[BUFLEN];
 	memset(buf, 0x00, BUFLEN);
-	snprintf(buf, BUFLEN, "%d$", id);
-	socket_write(fd, buf, BUFLEN);
+	snprintf(buf, BUFLEN, "%d%c", id, MSG_DELIMITER);
+	dollar_write(fd, buf, BUFLEN);
 }
 
 void free_all (struct turtle_group* tu, struct track_group* tr)
 {
 	free(tu->turtles);
 	free (tr->tracks);
+	free(tu);
+	free(tr);
 }
 
-void init_all (struct turtle_group* tu, struct track_group* tr)
+void init_all (struct turtle_group** tu, struct track_group** tr)
 {
-	tu->number = 0;
-	tu->turtles = NULL;
-	tr-> number = 0;
-	tr->tracks = NULL;
+	*tu = (struct turtle_group*) jb_malloc (sizeof(struct turtle_group));
+	(*tu)->number = 0;
+	(*tu)->turtles = NULL;
+	*tr = (struct track_group*) jb_malloc (sizeof(struct track_group));
+	(*tr)->number = 0;
+	(*tr)->tracks = NULL;
 }

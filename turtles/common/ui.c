@@ -23,11 +23,13 @@ void get_string (char* msg, char** buf, int len)
 	memset(*buf, 0x00, len);
 	fprintf (stdout, "%s\n", msg);
 	fgets(*buf, len, stdin);
+	*buf = strtok(*buf, "\n");
 	while (!strlen(*buf))
 	{
 		memset(*buf, 0x00, len);
 		fprintf (stdout, "Wrong value. Please type correct string.\n");
 		fgets(*buf, len, stdin);
+		*buf = strtok(*buf, "\n");
 	}
 }
 

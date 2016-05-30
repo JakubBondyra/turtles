@@ -10,21 +10,23 @@
 /* network features */
 #define BACKLOG 3
 
-/* message ids */
-#define ADDTURTLEID 0
-#define ADDTRACKID 1
-#define STARTRACEID 2
-#define ENDRACEID 3
-#define RACENEWSID 4
-#define NEWSEASONID 5
-#define LIVEREQUESTID 6
-#define SEQREQUESTID 7
-#define TABREQUESTID 8
-#define ERRID 9
-#define SUCCESSID 10
-#define GETTURTLESID 11
-#define GETTRACKSID 12
+/* message utils */
+#define ADDTURTLEID 10
+#define ADDTRACKID 11
+#define STARTRACEID 12
+#define ENDRACEID 13
+#define RACENEWSID 14
+#define NEWSEASONID 15
+#define LIVEREQUESTID 16
+#define SEQREQUESTID 17
+#define TABREQUESTID 18
+#define ERRID 19
+#define SUCCESSID 20
+#define GETTURTLESID 21
+#define GETTRACKSID 22
+#define COMMERROR 99
 #define NAMELEN 32
+#define MSG_DELIMITER '$'
 
 /* structures */
 struct turtle{
@@ -53,4 +55,12 @@ struct track_group {
 	struct track* tracks;
 };
 
+ssize_t dollar_read(int sockFd, char* buf, size_t count);
 
+ssize_t dollar_write(int sockFd, char* buf, size_t count);
+
+ssize_t bulk_dollar_write(int fd, const void *buf, size_t size);
+
+ssize_t bulk_dollar_read(int fd, void *buf, size_t size);
+
+int get_msg_type (char buf[BUFLEN]);

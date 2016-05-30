@@ -47,3 +47,7 @@ void quit_handler ();
 
 void send_message(int port, char* address, char buf[BUFLEN], int count);
 void handle_response(int sock);
+
+void print_formatted_turtles (char buf[BUFLEN]);
+void print_formatted_tracks (char buf[BUFLEN]);
+

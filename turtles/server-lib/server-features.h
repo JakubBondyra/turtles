@@ -6,10 +6,10 @@
 #define TABLEPATH "./table"
 
 void read_turtles (char* filepath, struct turtle_group* t);
-void save_turtle (char* filepath, struct turtle t);
+void save_turtle (char* filepath, struct turtle* t);
 void save_turtles (char* filepath, struct turtle_group t);
 void read_tracks (char* filepath, struct track_group* t);
-void save_track (char* filepath, struct track t);
+void save_track (char* filepath, struct track* t);
 void parse_turtle (struct turtle* t, char line[FILELINE]);
 void parse_track (struct track* t, char line[FILELINE]);
 
@@ -30,4 +30,4 @@ void append_track (struct track_group* tr, struct track newTrack);
 void print_short(int fd, int id);
 
 void free_all (struct turtle_group* tu, struct track_group* tr);
-void init_all (struct turtle_group* tu, struct track_group* tr);
+void init_all (struct turtle_group** tu, struct track_group** tr);

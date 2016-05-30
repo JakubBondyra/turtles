@@ -555,7 +555,7 @@ void jb_connect_local_socket(int sock, struct sockaddr_un* addr)
 void jb_accept(int sock, int* fd)
 {
 	(*fd)=-1;
-	if(((*fd)=TEMP_FAILURE_RETRY(accept(sock, NULL, NULL)))<0)
+	if(((*fd)=accept(sock, NULL, NULL))<0 && errno != EINTR)
 		jb_print_error("accept:");
 }
 
