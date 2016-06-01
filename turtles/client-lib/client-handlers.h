@@ -17,7 +17,7 @@
 #define ADDTRACKINFO "adds new track to server data"
 #define STARTRACEINFO "start a new race for specified track"
 #define ENDRACEINFO "ends current race (or not in another case)"
-#define RACENEWSINFO "[PlayerId] [Lap] [Checkpoint] sets position of turtle /w PlayerId to lap number Lap and checkpoint number Checkpoint.\n Lap = maximumLap + 1 means finished race."
+#define RACENEWSINFO "[PlayerId] [Lap] [Checkpoint] sets position of turtle [PlayerId] \nto lap number Lap and checkpoint number Checkpoint.\nLap = maximumLap + 1 means finished race."
 #define NEWSEASONINFO "resets current season"
 #define LIVEREQUESTINFO "starts live relation for current race"
 #define SEQREQUESTINFO "gets current positions of players in current race"

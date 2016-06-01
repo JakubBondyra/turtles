@@ -145,16 +145,15 @@ void display_formatted_turtles (char* buf)
 	char* p;
 	int age, weight, id, pts;
 	char name [BUFLEN];
-	char delim = MSG_PARTS_DELIMITER;
 
 	fprintf (stdout, "All players known to server:\n");
 	fprintf (stdout, "%-6s%-20s%-6s%-7s%-8s\n", "id", "name", "age", "weight", "points");
-	p = strtok(buf, &delim);
+	p = strtok(buf, ";");
 	memset(name, 0x00, BUFLEN);
 	sscanf(p, "%d:%[^:]:%d:%d:%d", &id, name, &age, &weight, &pts);
 	fprintf (stdout, "%-6d%-20s%-6d%-7d%-8d\n", id, name, age, weight, pts);
-		
-	while ((p = strtok(NULL, &delim)) != NULL)
+
+	while ((p = strtok(NULL, ";")) != NULL)
 	{
 		if (strlen(p) == 0)
 			break;
@@ -171,19 +170,18 @@ void display_formatted_tracks (char* buf)
 	int chpoints, laps, length;
 	char name [BUFLEN];
 	char chlengths[CHPTLEN];
-	char delim = MSG_PARTS_DELIMITER;
 
 	fprintf (stdout, "All tracks known to server:\n");
 	fprintf (stdout, "%-20s%-10s%-6s%-8s%-30s\n", "name", "chpoints", "laps", "length", "chpoint locations");
 	if (buf == NULL || strlen(buf) <4)
 		return;
-	p = strtok(buf, &delim);
+	p = strtok(buf, ";");
 	memset(name, 0x00, BUFLEN);
 	memset(chlengths, 0x00, CHPTLEN);
 	sscanf(p, "%[^:]:%d:%d:%d:%[0123456789,]", name, &chpoints, &laps, &length, chlengths);
 	fprintf (stdout, "%-20s%-10d%-6d%-8d%-30s\n", name, chpoints, laps, length, chlengths);
 		
-	while ((p = strtok(NULL, &delim)) != NULL)
+	while ((p = strtok(NULL, ";")) != NULL)
 	{
 		if (strlen(p) == 0)
 			break;
@@ -199,18 +197,17 @@ void display_formatted_sequence (char* buf)
 	char* p;
 	int lap, chpoint;
 	char name [BUFLEN];
-	char delim = MSG_PARTS_DELIMITER;
 
 	fprintf (stdout, "Current race players' positions:\n");
 	fprintf (stdout, "%-20s%-6s%-13s\n", "name", "lap", "last checkpoint");
 	if (buf == NULL || strlen(buf) <4)
 		return;
-	p = strtok(buf, &delim);
+	p = strtok(buf, ";");
 	memset(name, 0x00, BUFLEN);
 	sscanf(p, "%[^:]:%d:%d", name, &lap, &chpoint);
 	fprintf (stdout, "%-20s%-6d%-13d\n", name, lap, chpoint);
 		
-	while ((p = strtok(NULL, &delim)) != NULL)
+	while ((p = strtok(NULL, ";")) != NULL)
 	{
 		if (strlen(p) == 0)
 			break;
@@ -226,18 +223,17 @@ void display_formatted_table (char* buf)
 	char* p;
 	int points;
 	char name [BUFLEN];
-	char delim = MSG_PARTS_DELIMITER;
 	
 	fprintf (stdout, "Current season's table:\n");
 	fprintf (stdout, "%-20s%-6s\n", "name", "points");
 	if (buf == NULL || strlen(buf) <4)
 		return;
-	p = strtok(buf, &delim);
+	p = strtok(buf, ";");
 	memset(name, 0x00, BUFLEN);
 	sscanf(p, "%[^:]:%d", name, &points);
 	fprintf (stdout, "%-20s%-6d\n", name, points);
 		
-	while ((p = strtok(NULL, &delim)) != NULL)
+	while ((p = strtok(NULL, ";")) != NULL)
 	{
 		if (strlen(p) == 0)
 			break;

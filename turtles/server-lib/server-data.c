@@ -134,6 +134,7 @@ int get_players_from_msg (struct turtle_group* tu, char* players)
 	int* s;
 	int cval, i, j;
 	int n = 0;
+	fprintf (stdout, "Players: %s\n", players);
 	p=strtok(players, ",");
 	if (p!= NULL && sscanf(p, "%d", &cval) == 1)
 	{
@@ -144,7 +145,6 @@ int get_players_from_msg (struct turtle_group* tu, char* players)
 		
 	while ((p=strtok(NULL, ",")) != NULL)
 	{
-		p=strtok(NULL, ",");
 		if (sscanf(p, "%d", &cval) == 1)
 			append_int(&s, n++, cval); 
 	}

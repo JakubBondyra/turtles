@@ -54,7 +54,8 @@ void server_work(int port)
 		else if (msg == STARTRACEID)
 		{
 			/* start race (specified name of track) */
-			handle_start_race(fd, buf, &currRacePlaceId, turtles, *tracks);
+			handle_start_race(fd, buf, &currRacePlaceId, turtles, tracks);
+			fprintf (stdout, "D\n");
 			jb_close(fd);
 		}
 		else if (msg == ENDRACEID)

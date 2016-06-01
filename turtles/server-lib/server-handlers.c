@@ -35,9 +35,9 @@ void handle_add_track(int fd, int currRace, struct track_group* tracks, char buf
 	print_success(fd);
 }
 
-void handle_start_race(int fd, char buf[BUFLEN], int* currRace, struct turtle_group* tu, struct track_group tr)
+void handle_start_race(int fd, char buf[BUFLEN], int* currRace, struct turtle_group* tu, struct track_group* tr)
 {
-	char name [BUFLEN];
+	char* name = get_buffer(NAMELEN);
 	char* players = get_buffer(CHPTLEN);
 	int i;
 	memset(name, 0x00, BUFLEN);
@@ -53,9 +53,9 @@ void handle_start_race(int fd, char buf[BUFLEN], int* currRace, struct turtle_gr
 		print_error(fd, "Wrong request structure.");
 		return;
 	}
-	for (i=0;i<tr.number;i++)
+	for (i=0;i<tr->number;i++)
 	{
-		if (!strcmp(tr.tracks[i].name, name))
+		if (!strncmp(tr->tracks[i].name, name, strlen(name)))
 		{
 			*currRace = i;
 			break;
@@ -69,11 +69,13 @@ void handle_start_race(int fd, char buf[BUFLEN], int* currRace, struct turtle_gr
 	if (get_players_from_msg (tu, players))
 	{
 		free(players);
+		free(name);
 		print_success(fd);
 	}
 	else
 	{
 		free(players);
+		free(name);
 		print_error(fd, "Wrong players' ids.");
 	}
 }
@@ -236,9 +238,9 @@ void print_sequence (int fd, int currRace, struct track_group tr, struct turtle_
 			pos+=written;
 		}
 	}
-	snprintf(buf+pos, BUFLEN-pos, "%c",  MSG_TERMINATOR);
-	
-	dollar_write(fd, buf, BUFLEN);
+	written = snprintf(buf+pos, BUFLEN-pos, "%c",  MSG_TERMINATOR);
+	pos += written;
+	dollar_write(fd, buf, pos);
 }
 
 void print_table(int fd, struct turtle_group tu)
@@ -257,9 +259,10 @@ void print_table(int fd, struct turtle_group tu)
 		written = snprintf(buf+pos,BUFLEN-pos, "%s:%d%c", tu.turtles[i].name, tu.turtles[i].currPoints, MSG_PARTS_DELIMITER);
 		pos+=written;
 	}
-	snprintf(buf+pos, BUFLEN-pos, "%c", MSG_TERMINATOR);
+	written = snprintf(buf+pos, BUFLEN-pos, "%c", MSG_TERMINATOR);
+	pos += written;
 	
-	dollar_write(fd, buf, BUFLEN);
+	dollar_write(fd, buf, pos);
 }
 
 void print_all_turtles (int fd, struct turtle_group tu)
@@ -276,12 +279,13 @@ void print_all_turtles (int fd, struct turtle_group tu)
 	
 	for (i=0;i<tu.number;i++)
 	{
+		fprintf (stdout, "Turtle %d:%s:%d:%d:%d\n", tu.turtles[i].id, tu.turtles[i].name, tu.turtles[i].age, tu.turtles[i].weight, tu.turtles[i].currPoints);
 		written = snprintf(buf+pos,BUFLEN-pos, "%d:%s:%d:%d:%d%c", tu.turtles[i].id, tu.turtles[i].name, tu.turtles[i].age, tu.turtles[i].weight, tu.turtles[i].currPoints, MSG_PARTS_DELIMITER);
 		pos+=written;
 	}
-	snprintf(buf+pos, BUFLEN-pos, "%c", MSG_TERMINATOR);
-	
-	dollar_write(fd, buf, BUFLEN);
+	written = snprintf(buf+pos, BUFLEN-pos, "%c", MSG_TERMINATOR);
+	pos += written;
+	dollar_write(fd, buf, pos);
 }
 
 void print_all_tracks (int fd, struct track_group tr)
@@ -297,11 +301,11 @@ void print_all_tracks (int fd, struct track_group tr)
 	pos+=written;
 	
 	for (i=0;i<tr.number;i++)
-	{	fprintf (stdout, "Track:%s:%d:%d:%d:%s\n", tr.tracks[i].name, tr.tracks[i].checkpoint_number, tr.tracks[i].laps, tr.tracks[i].length, tr.tracks[i].chlengths);
+	{
 		written = snprintf(buf+pos,BUFLEN-pos, "%s:%d:%d:%d:%s%c", tr.tracks[i].name, tr.tracks[i].checkpoint_number, tr.tracks[i].laps, tr.tracks[i].length, tr.tracks[i].chlengths, MSG_PARTS_DELIMITER);
 		pos+=written;
 	}
-	snprintf(buf+pos, BUFLEN-pos, "%c", MSG_TERMINATOR);
-	
-	dollar_write(fd, buf, BUFLEN);
+	written = snprintf(buf+pos, BUFLEN-pos, "%c", MSG_TERMINATOR);
+	pos += written;
+	dollar_write(fd, buf, pos);
 }
