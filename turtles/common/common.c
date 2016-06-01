@@ -65,18 +65,18 @@ ssize_t bulk_dollar_read(int fd, void *buf, size_t size)
 
 void print_error(int fd, char* msg)
 {
-	char buf[BUFLEN];
-	memset(buf, 0x00, BUFLEN);
-	snprintf(buf, BUFLEN, "%d;%s%c", ERRID, msg, MSG_TERMINATOR);
-	dollar_write(fd, buf, BUFLEN);
+	char* buf = get_buffer(BUFLEN);
+	int len = snprintf(buf, BUFLEN, "%d;%s%c", ERRID, msg, MSG_TERMINATOR);
+	dollar_write(fd, buf, len);
+	free(buf);
 }
 
 void print_success(int fd)
 {
-	char buf[BUFLEN];
-	memset(buf, 0x00, BUFLEN);
-	snprintf(buf, BUFLEN, "%d%c", SUCCESSID, MSG_TERMINATOR);
-	dollar_write(fd, buf, BUFLEN);
+	char* buf = get_buffer(BUFLEN);
+	int len = snprintf(buf, BUFLEN, "%d%c", SUCCESSID, MSG_TERMINATOR);
+	dollar_write(fd, buf, len);
+	free(buf);
 }
 
 int get_msg_type (char buf[BUFLEN])

@@ -4,12 +4,6 @@ void handle_add_turtle(int fd, int currRace, struct turtle_group* turtles, char 
 {
 	struct turtle t;
 	
-	if (currRace != -1)
-	{
-		print_error(fd, "Adding not possible during ongoing race.");
-		return;
-	}
-	
 	if (sscanf(buf, "%*d;%d:%[^:]:%d:%d$", &(t.id), t.name, &(t.age), &(t.weight)) != 4)
 	{
 		print_error(fd, "Wrong request structure.");
@@ -17,8 +11,8 @@ void handle_add_turtle(int fd, int currRace, struct turtle_group* turtles, char 
 	}
 	
 	t.currPoints = 0;
-	t.currLap = 0;
-	t.currChp = 0;
+	t.currLap = -1;
+	t.currChp = -1;
 	append_turtle(turtles, t);
 	save_turtle(TURTLEPATH, &t);
 	print_success(fd);
@@ -28,12 +22,6 @@ void handle_add_track(int fd, int currRace, struct track_group* tracks, char buf
 {
 	int chuj = -1;
 	struct track t;
-	
-	if (currRace != -1)
-	{
-		print_error(fd, "Adding not possible during ongoing race.");
-		return;
-	}
 	
 	if ((chuj=sscanf(buf, "%*d;%[^:]:%d:%d:%d:%[0123456789,]", t.name, &(t.checkpoint_number), &(t.laps), &(t.length), t.chlengths)) != 5)
 	{
@@ -47,10 +35,10 @@ void handle_add_track(int fd, int currRace, struct track_group* tracks, char buf
 	print_success(fd);
 }
 
-void handle_start_race(int fd, char buf[BUFLEN], int* currRace, struct track_group tr)
+void handle_start_race(int fd, char buf[BUFLEN], int* currRace, struct turtle_group* tu, struct track_group tr)
 {
 	char name [BUFLEN];
-	char players[CHPTLEN];
+	char* players = get_buffer(CHPTLEN);
 	int i;
 	memset(name, 0x00, BUFLEN);
 	memset(players, 0x00, CHPTLEN);
@@ -60,11 +48,11 @@ void handle_start_race(int fd, char buf[BUFLEN], int* currRace, struct track_gro
 		print_error(fd, "There is already race ongoing.");
 		return;
 	}
-	if (sscanf (buf, "%*d;%[^:]:%[^$]", name, players) != 1)
+	if (sscanf (buf, "%*d;%[^:]:%[^$]", name, players) != 2)
 	{
 		print_error(fd, "Wrong request structure.");
 		return;
-	}/*TODO! HANDLE PLAYERS IN RACE, ETC...*/
+	}
 	for (i=0;i<tr.number;i++)
 	{
 		if (!strcmp(tr.tracks[i].name, name))
@@ -78,8 +66,16 @@ void handle_start_race(int fd, char buf[BUFLEN], int* currRace, struct track_gro
 		print_error(fd, "No track for given name.");
 		return;
 	}
-	
-	print_success(fd);
+	if (get_players_from_msg (tu, players))
+	{
+		free(players);
+		print_success(fd);
+	}
+	else
+	{
+		free(players);
+		print_error(fd, "Wrong players' ids.");
+	}
 }
 
 void handle_end_race (int fd, char buf[BUFLEN], int* currRace, struct turtle_group* tu)
@@ -88,12 +84,13 @@ void handle_end_race (int fd, char buf[BUFLEN], int* currRace, struct turtle_gro
 	if (*currRace == -1)
 	{
 		print_error(fd, "There is no race to end.");
+		return;
 	}
 	*currRace = -1;
 	for (i=0;i<tu->number;i++)
 	{
-		tu->turtles[i].currLap = 0;
-		tu->turtles[i].currChp = 0;
+		tu->turtles[i].currLap = -1;
+		tu->turtles[i].currChp = -1;
 	}
 	save_turtles(TURTLEPATH, *tu);
 	print_success(fd);
@@ -117,7 +114,7 @@ void handle_update_race (int fd, char buf[BUFLEN], int currRace, struct turtle_g
 	
 	for (i=0;i<tu->number;i++)
 	{
-		if (tu->turtles[i].id == who)
+		if (tu->turtles[i].id == who && tu->turtles[i].currLap >=0 && tu->turtles[i].currChp >= 0)
 		{
 			ind = i;
 			break;
@@ -125,7 +122,7 @@ void handle_update_race (int fd, char buf[BUFLEN], int currRace, struct turtle_g
 	}
 	if (ind == -1)
 	{
-		print_error(fd, "Wrong player id specified.");
+		print_error(fd, "Player doesn't exist or doesn't attend a race.");
 		return;
 	}
 	
@@ -204,6 +201,7 @@ void handle_reset_table(int fd, struct turtle_group* tu, int currRace)
 	if (currRace != -1)
 	{
 		print_error(fd, "Race is ongoing. Cannot reset table.");
+		return;
 	}
 	
 	for (i=0;i<tu->number;i++)
@@ -221,15 +219,22 @@ void print_sequence (int fd, int currRace, struct track_group tr, struct turtle_
 	int written = 0;
 	int pos = 0;
 	memset(buf, 0x00, BUFLEN);
-	
+	if (currRace == -1)
+	{
+		print_error(fd, "No race right now.");
+		return;
+	}
 	/* header */
 	written = snprintf(buf, BUFLEN, "%d%c", SEQREQUESTID, MSG_PARTS_DELIMITER);
 	pos+=written;
 	
 	for (i=0;i<tu.number;i++)
 	{
-		written = snprintf(buf+pos,BUFLEN-pos, "%s:%d:%d%c", tu.turtles[i].name, tu.turtles[i].currLap, tu.turtles[i].currChp, MSG_PARTS_DELIMITER);
-		pos+=written;
+		if (tu.turtles[i].currLap >= 0 && tu.turtles[i].currChp >=0)
+		{
+			written = snprintf(buf+pos,BUFLEN-pos, "%s:%d:%d%c", tu.turtles[i].name, tu.turtles[i].currLap, tu.turtles[i].currChp, MSG_PARTS_DELIMITER);
+			pos+=written;
+		}
 	}
 	snprintf(buf+pos, BUFLEN-pos, "%c",  MSG_TERMINATOR);
 	
@@ -292,7 +297,7 @@ void print_all_tracks (int fd, struct track_group tr)
 	pos+=written;
 	
 	for (i=0;i<tr.number;i++)
-	{
+	{	fprintf (stdout, "Track:%s:%d:%d:%d:%s\n", tr.tracks[i].name, tr.tracks[i].checkpoint_number, tr.tracks[i].laps, tr.tracks[i].length, tr.tracks[i].chlengths);
 		written = snprintf(buf+pos,BUFLEN-pos, "%s:%d:%d:%d:%s%c", tr.tracks[i].name, tr.tracks[i].checkpoint_number, tr.tracks[i].laps, tr.tracks[i].length, tr.tracks[i].chlengths, MSG_PARTS_DELIMITER);
 		pos+=written;
 	}

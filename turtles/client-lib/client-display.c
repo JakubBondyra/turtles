@@ -1,7 +1,7 @@
 #include "client-display.h"
 
 
-void get_int (char* msg, int* val)
+int get_int (char* msg, int* val)
 {
 	int v = 0;
 	char buf [COMMANDLEN];
@@ -11,27 +11,41 @@ void get_int (char* msg, int* val)
 	v = atoi(buf);
 	while (!v)
 	{
+		if (buf[0] == 'a')
+		{
+			return 0;
+		}
 		fprintf(stdout,"Wrong value. Please type correct integer.\n");
 		memset(buf, 0x00, COMMANDLEN);
 		fgets(buf, COMMANDLEN, stdin);
 		v = atoi(buf);
 	}
 	*val = v;
+	return 1;
 }
 
-void get_string (char* msg, char** buf, int len)
+int get_string (char* msg, char** buf, int len)
 {
 	memset(*buf, 0x00, len);
 	fprintf (stdout, "%s\n", msg);
 	fgets(*buf, len, stdin);
 	*buf = strtok(*buf, "\n");
+	if (strlen(*buf) == 1 && (*buf)[0] == 'a')
+	{
+		return 0;
+	}
 	while (!strlen(*buf))
 	{
 		memset(*buf, 0x00, len);
 		fprintf (stdout, "Wrong value. Please type correct string.\n");
 		fgets(*buf, len, stdin);
+		if (strlen(*buf) == 1 && (*buf)[0] == 'a')
+		{
+			return 0;
+		}
 		*buf = strtok(*buf, "\n");
 	}
+	return 1;
 }
 
 int verify_3param_command(char* buf, int* arg1, int* arg2, int* arg3)
@@ -40,108 +54,89 @@ int verify_3param_command(char* buf, int* arg1, int* arg2, int* arg3)
 	return ret == 3;
 }
 
-int comma_list_check (char* buf, int len, int listlen, int maxval)
-{
-	int i;
-	int commas = 0;
-	char * p;
-	char* tbuf = get_buffer(len);
-	int currVal = -1;
-	int lastVal;
-	memcpy(tbuf, buf, sizeof(char)*len);
-	for (i=0;i<strlen(buf);i++)
-	{
-		if (buf[i] == ',')
-			commas++;
-	}
-	if (commas != listlen-1)
-	{
-		fprintf (stderr, "Invalid number of values.\n");
-		free(tbuf);
-		return 0;
-	}
-	
-	p = strtok(tbuf, ",");
-	sscanf(p, "%d", &currVal);
-	if (currVal != 0)
-	{
-		fprintf (stderr, "String is not starting with 0 (length of first checkpoint)\n");
-		free(tbuf);
-		return 0;
-	}
-	lastVal = 0;
 
-	while ((p = strtok(NULL, ",")) != NULL)
+int get_comma_list (char* msg, char** buf, int len, int listlen, int maxVal)
+{
+	char* line = get_buffer(LINEMAX);
+	int newVal;
+	int prevVal;
+	int i=1;
+	int pos = 0;
+	int written;
+	memset(*buf, 0x00, len);
+	while (i<=listlen)
 	{
-		sscanf(p, "%d", &currVal);
-		if (lastVal > currVal)
+		fprintf (stdout, "%s %d\n", msg, i);
+		fgets(line, LINEMAX, stdin);
+		if (line[0] == 'a')
 		{
-			fprintf (stderr, "Lengths are not ascending\n");
-			free(tbuf);
+			free(line);
 			return 0;
 		}
-		lastVal = currVal;
+		if (sscanf (line, "%d", &newVal) != 1)
+		{
+			fprintf (stdout, "Wrong value.\n");
+		}
+		else if (newVal < prevVal)
+		{
+			fprintf (stdout, "Wrong values - distances are descending.\n");
+		}
+		else if (newVal >= maxVal)
+		{
+			fprintf (stdout, "Distance of checkpoint excedes length of track (%d)\n", maxVal);
+		}
+		else
+		{
+			if (i==1)
+				written = snprintf(*buf+pos, len-pos, "%d", newVal);
+			else
+				written = snprintf(*buf+pos, len-pos, ",%d", newVal);
+			pos+=written;
+			i++;
+			prevVal = newVal;
+		}
 	}
-	free(tbuf);
+	
+	free(line);
 	return 1;
 }
 
-
-void get_comma_list (char* msg, char** buf, int len, int listlen, int maxval)
+int get_players (char* msg, char** buf, int len)
 {
+	char* line = get_buffer(LINEMAX);
+	int newId;
+	int i=1;
+	int pos = 0;
+	int written;
 	memset(*buf, 0x00, len);
-	fprintf (stdout, "%s\n", msg);
-	fgets(*buf, len, stdin);
-	*buf = strtok(*buf, "\n");
-	
-	while (!comma_list_check(*buf, len, listlen, maxval))
+	while (1)
 	{
-		memset(*buf, 0x00, len);
-		fprintf (stdout, "Wrong value. Please type correct string.\n");
-		fgets(*buf, len, stdin);
-		*buf = strtok(*buf, "\n");
-	}
-}
-
-void get_players (char* msg, char** buf, int len)
-{
-	memset(*buf, 0x00, len);
-	fprintf (stdout, "%s\n", msg);
-	fgets(*buf, len, stdin);
-	*buf = strtok(*buf, "\n");
-	
-	while (!players_list_check(*buf, len))
-	{
-		memset(*buf, 0x00, len);
-		fprintf (stdout, "Wrong value. Please type correct string.\n");
-		fgets(*buf, len, stdin);
-		*buf = strtok(*buf, "\n");
-	}
-}
-
-int players_list_check(char* buf, int len)
-{
-	char * p;
-	char* tbuf = get_buffer(len);
-	int val;
-	memcpy(tbuf, buf, sizeof(char)*len);
-	
-	p = strtok(tbuf, ",");
-	if (!sscanf(p, "%d", &val))
-	{
-		free(tbuf);
-		return 0;
-	}
-
-	while ((p = strtok(NULL, ",")) != NULL)
-	{
-		if (!sscanf(p, "%d", &val))
+		fprintf (stdout, "%s %d (or type \'q\' to finish)\n", msg, i);
+		fgets(line, LINEMAX, stdin);
+		if (line[0] == 'q')
 		{
-			free(tbuf);
+			break;
+		}
+		else if (line[0] == 'a')
+		{
+			free(line);
 			return 0;
 		}
+		if (sscanf (line, "%d", &newId) != 1)
+		{
+			fprintf (stdout, "Wrong value.\n");
+		}
+		else
+		{
+			if (i==1)
+				written = snprintf(*buf+pos, len-pos, "%d", newId);
+			else
+				written = snprintf(*buf+pos, len-pos, ",%d", newId);
+			pos+=written;
+			i++;
+		}
 	}
-	free(tbuf);
+	free(line);
 	return 1;
 }
 
@@ -185,7 +180,7 @@ void display_formatted_tracks (char* buf)
 	p = strtok(buf, &delim);
 	memset(name, 0x00, BUFLEN);
 	memset(chlengths, 0x00, CHPTLEN);
-	sscanf(p, "%[^:]:%d:%d:%d:%s", name, &chpoints, &laps, &length, chlengths);
+	sscanf(p, "%[^:]:%d:%d:%d:%[0123456789,]", name, &chpoints, &laps, &length, chlengths);
 	fprintf (stdout, "%-20s%-10d%-6d%-8d%-30s\n", name, chpoints, laps, length, chlengths);
 		
 	while ((p = strtok(NULL, &delim)) != NULL)
@@ -193,7 +188,7 @@ void display_formatted_tracks (char* buf)
 		if (strlen(p) == 0)
 			break;
 		memset(name, 0x00, BUFLEN);
-		if (sscanf(p, "%[^:]:%d:%d:%d%s", name, &chpoints, &laps, &length, chlengths) != 5)
+		if (sscanf(p, "%[^:]:%d:%d:%d:%[0123456789,]", name, &chpoints, &laps, &length, chlengths) != 5)
 			continue;
 		fprintf (stdout, "%-20s:%-10d:%-6d:%-8d%-30s\n", name, chpoints, laps, length, chlengths);
 	}

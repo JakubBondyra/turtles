@@ -108,7 +108,7 @@ void save_track (char* filepath, struct track* t)
 		jb_print_error("fopen:");
 	}
 	
-	fprintf (f, "%s:%d:%d:%d:%s", t->name, t->checkpoint_number, t->laps, t->length, t->chlengths);
+	fprintf (f, "%s:%d:%d:%d:%s\n", t->name, t->checkpoint_number, t->laps, t->length, t->chlengths);
 
 	if (-1 == fclose(f))
 	{
@@ -119,8 +119,8 @@ void save_track (char* filepath, struct track* t)
 void parse_turtle (struct turtle* t, char line[FILELINE])
 {
 	sscanf (line, "%d:%[^:]:%d:%d:%d", &(t->id), t->name, &(t->age), &(t->weight), &(t->currPoints));
-	t->currChp = 0;
-	t->currLap = 0;
+	t->currChp = -1;
+	t->currLap = -1;
 }
 
 void parse_track (struct track* t, char line[FILELINE])
@@ -128,6 +128,58 @@ void parse_track (struct track* t, char line[FILELINE])
 	sscanf(line, "%[^:]:%d:%d:%d:%[0123456789,]", t->name, &(t->checkpoint_number), &(t->laps), &(t->length), t->chlengths);
 }
 
+int get_players_from_msg (struct turtle_group* tu, char* players)
+{
+	char *p;
+	int* s;
+	int cval, i, j;
+	int n = 0;
+	p=strtok(players, ",");
+	if (p!= NULL && sscanf(p, "%d", &cval) == 1)
+	{
+		append_int(&s, n++, cval); 
+	}
+	if (p==NULL)
+		return 0;
+		
+	while ((p=strtok(NULL, ",")) != NULL)
+	{
+		p=strtok(NULL, ",");
+		if (sscanf(p, "%d", &cval) == 1)
+			append_int(&s, n++, cval); 
+	}
+	for (i=0;i<n;i++)
+	{
+		int found = 0;
+		for (j=0;j<tu->number;j++)
+		{
+			if (s[i] == tu->turtles[j].id)
+			{
+				found = 1;
+				break;
+			}
+		}
+		if (!found)
+		{
+			free(s);
+			return 0;
+		}
+	}
+	for (i=0;i<n;i++)
+	{
+		for (j=0;j<tu->number;j++)
+		{
+			if (s[i] == tu->turtles[j].id)
+			{
+				tu->turtles[j].currLap=0;
+				tu->turtles[j].currChp=0;
+				break;
+			}
+		}
+	}
+	free(s);
+	return 1;
+}
 
 void append_turtle (struct turtle_group* tu, struct turtle newTurtle)
 {
@@ -202,4 +254,15 @@ void init_all (struct turtle_group** tu, struct track_group** tr)
 	*tr = (struct track_group*) jb_malloc (sizeof(struct track_group));
 	(*tr)->number = 0;
 	(*tr)->tracks = NULL;
+}
+
+void append_int (int** p, int len, int val)
+{
+	int* n = (int*) jb_malloc (len+1);
+	if (len>0)
+		memcpy(n, *p, sizeof(int)*len);
+		
+	*(n+len) = val;
+	free(*p);
+	*p = n;
 }

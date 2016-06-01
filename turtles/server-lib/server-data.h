@@ -42,7 +42,11 @@ void save_track (char* filepath, struct track* t);
 void parse_turtle (struct turtle* t, char line[FILELINE]);
 void parse_track (struct track* t, char line[FILELINE]);
 
+int get_players_from_msg (struct turtle_group* tu, char* players);
+
 void append_turtle (struct turtle_group* tu, struct turtle newTurtle);
 void append_track (struct track_group* tr, struct track newTrack);
 void free_all (struct turtle_group* tu, struct track_group* tr);
 void init_all (struct turtle_group** tu, struct track_group** tr);
+
+void append_int (int** p, int len, int val);

@@ -49,6 +49,7 @@ void run_ui (int port, char* address, char* commands[], char* infos[], int ccoun
 		{
 			fprintf(stdout, "%s - %s\n", commands[i], infos[i]);
 		}
+		fprintf (stdout, "*** Type single \'a\' to abort the current command at any time.\n");
 	}
 }
 
@@ -144,10 +145,34 @@ void add_turtle_handler (int port, char* address)
 	char* buf = get_buffer(BUFLEN);
 	int len = 0;
 	memset(name, 0x00, NAMELEN);
-	get_int("Please specify id of turtle", &id);
-	get_string("Please specify name of turtle", &name, NAMELEN);
-	get_int("Please specify age of turtle", &age);
-	get_int("Please specify weight of turtle", &weight);
+	if (!get_int("Please specify id of turtle", &id))
+	{
+		free(buf);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
+	if (!get_string("Please specify name of turtle", &name, NAMELEN))
+	{
+		free(buf);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
+	if (!get_int("Please specify age of turtle", &age))
+	{
+		free(buf);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
+	if (!get_int("Please specify weight of turtle", &weight))
+	{
+		free(buf);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
 	len = snprintf(buf, BUFLEN, "%d;%d:%s:%d:%d%c", ADDTURTLEID, id, name, age, weight, MSG_TERMINATOR);
 	send_request(port, address, buf, len);
 	free(buf);
@@ -160,11 +185,46 @@ void add_track_handler (int port, char* address)
 	char* buf = get_buffer(BUFLEN);
 	char* chlengths = get_buffer(CHPTLEN);
 	int len = 0;
-	get_string("Please specify name of track", &name, NAMELEN);
-	get_int("Please specify number of checkpoints on each lap", &chpoints);
-	get_int("Please specify number of laps", &laps);
-	get_int("Please specify length of track", &length);
-	get_comma_list("Please specify checkpoint lengths (comma-separated string):", &chlengths, CHPTLEN, chpoints, length);
+	if (!get_string("Please specify name of track", &name, NAMELEN))
+	{
+		free(buf);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
+	if (!get_int("Please specify number of checkpoints on each lap", &chpoints))
+	{
+		free(buf);
+		free(chlengths);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
+	if (!get_int("Please specify number of laps", &laps))
+	{
+		free(buf);
+		free(chlengths);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
+	if (!get_int("Please specify length of track", &length))
+	{
+		free(buf);
+		free(chlengths);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
+	fprintf (stdout, "Now, specify checkpoints' distances from start.\n");
+	if (!get_comma_list("Please specify checkpoint", &chlengths, CHPTLEN, chpoints, length))
+	{
+		free(buf);
+		free(chlengths);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
 	len = snprintf(buf, BUFLEN, "%d;%s:%d:%d:%d:%s%c", ADDTRACKID, name, chpoints, laps, length, chlengths, MSG_TERMINATOR);
 	send_request(port, address, buf, len);
 	free(buf);
@@ -177,8 +237,21 @@ void start_race_handler (int port, char* address)
 	int len;
 	char* name = get_buffer(NAMELEN);
 	char* players = get_buffer(CHPTLEN);
-	get_string("Please specify name of track", &name, NAMELEN);
-	get_players("Please specify participants - player ids (comma-separated string):", &players, CHPTLEN);
+	if (!get_string("Please specify name of track", &name, NAMELEN))
+	{
+		free(buf);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
+	fprintf (stdout, "Now, specify participants' ids (turtle ids).\n");
+	if (!get_players("Please specify player", &players, CHPTLEN))
+	{
+		free(buf);
+		free(name);
+		fprintf (stdout, "Aborted.\n");
+		return;
+	}
 	len = snprintf(buf, BUFLEN, "%d;%s:%s%c", STARTRACEID, name, players, MSG_TERMINATOR);
 	send_request(port, address, buf, len);
 	free(buf);

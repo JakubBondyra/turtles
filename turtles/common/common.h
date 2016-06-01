@@ -3,10 +3,11 @@
 #include "jb_library.h"
 
 /* buffer lengths */
-#define FILELINE 128
+#define FILELINE 256
 #define BUFLEN 667
 #define COMMANDLEN 32
 #define CHPTLEN 128
+#define LINEMAX 164
 
 /* network features */
 #define BACKLOG 3
