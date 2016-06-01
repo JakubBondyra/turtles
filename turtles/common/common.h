@@ -6,6 +6,7 @@
 #define FILELINE 128
 #define BUFLEN 667
 #define COMMANDLEN 32
+#define CHPTLEN 128
 
 /* network features */
 #define BACKLOG 3
@@ -26,41 +27,16 @@
 #define GETTRACKSID 22
 #define COMMERROR 99
 #define NAMELEN 32
-#define MSG_DELIMITER '$'
-
-/* structures */
-struct turtle{
-	int id;
-	char name [NAMELEN];
-	int age;
-	int weight;
-	int currPoints;
-	int currPos;
-};
-
-struct turtle_group {
-	int number;
-	struct turtle* turtles;
-};
-
-struct track {
-	char name [NAMELEN];
-	int length;
-	int checkpoint_number;
-	int laps;
-};
-
-struct track_group {
-	int number;
-	struct track* tracks;
-};
+#define MSG_TERMINATOR '$'
+#define MSG_PARTS_DELIMITER ';'
 
 ssize_t dollar_read(int sockFd, char* buf, size_t count);
-
 ssize_t dollar_write(int sockFd, char* buf, size_t count);
-
 ssize_t bulk_dollar_write(int fd, const void *buf, size_t size);
-
 ssize_t bulk_dollar_read(int fd, void *buf, size_t size);
 
+void print_error(int fd, char* msg);
+void print_success(int fd);
 int get_msg_type (char buf[BUFLEN]);
+char* get_buffer (int maxlen);
+char* chop_endings(char* buf, int len);

@@ -1,4 +1,4 @@
-#include "server-features.h"
+#include "server-handlers.h"
 
 volatile sig_atomic_t running = 1;
 
@@ -42,13 +42,13 @@ void server_work(int port)
 		if (msg == ADDTURTLEID)
 		{
 			/* add turtle in msg to turtle_group and to file */
-			handle_add_turtle(fd, turtles, buf);
+			handle_add_turtle(fd, currRacePlaceId, turtles, buf);
 			jb_close(fd);
 		}
 		else if (msg == ADDTRACKID)
 		{
 			/* add track in msg to track_group and to file */
-			handle_add_track(fd, tracks, buf);
+			handle_add_track(fd, currRacePlaceId, tracks, buf);
 			jb_close(fd);
 		}
 		else if (msg == STARTRACEID)
@@ -72,7 +72,7 @@ void server_work(int port)
 		else if (msg == NEWSEASONID)
 		{
 			/* just reset table and write to file */
-			handle_reset_table(fd, turtles);
+			handle_reset_table(fd, turtles, currRacePlaceId);
 			jb_close(fd);
 		}
 		else if (msg == LIVEREQUESTID)
@@ -107,9 +107,8 @@ void server_work(int port)
 		}
 		else
 		{
-			fprintf (stderr, "Communication error. Malformed buffer. \n");
 			fflush(stderr);
-			print_short(fd, ERRID);
+			print_error(fd, "Communication error. Malformed buffer.");
 			jb_close(fd);
 		}
 	}

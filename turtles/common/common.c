@@ -5,6 +5,7 @@ ssize_t dollar_read(int sock, char* buf, size_t size)
 	ssize_t len = bulk_dollar_read(sock, buf, size);
 	if(len <0 && errno == ECONNRESET)
 		return 0;
+	fprintf (stdout, "Received %d bytes from socket.\n", (int)len);
 	return len;
 }
 
@@ -15,6 +16,7 @@ ssize_t dollar_write(int sock, char* buf, size_t size)
 		return 0;
 	if(len <0 && errno == ECONNRESET)
 		return 0;
+	fprintf (stdout, "Printed %d bytes to socket.\n", (int)len);
 	return len;
 }
 
@@ -55,10 +57,26 @@ ssize_t bulk_dollar_read(int fd, void *buf, size_t size)
 		/* EOF case */
 		if (nread == 0)
 			break;
-		if (*(p-1) == MSG_DELIMITER)
+		if (*(p-1) == MSG_TERMINATOR)
 			break;
 	}
 	return size-nleft;
+}
+
+void print_error(int fd, char* msg)
+{
+	char buf[BUFLEN];
+	memset(buf, 0x00, BUFLEN);
+	snprintf(buf, BUFLEN, "%d;%s%c", ERRID, msg, MSG_TERMINATOR);
+	dollar_write(fd, buf, BUFLEN);
+}
+
+void print_success(int fd)
+{
+	char buf[BUFLEN];
+	memset(buf, 0x00, BUFLEN);
+	snprintf(buf, BUFLEN, "%d%c", SUCCESSID, MSG_TERMINATOR);
+	dollar_write(fd, buf, BUFLEN);
 }
 
 int get_msg_type (char buf[BUFLEN])
@@ -74,4 +92,19 @@ int get_msg_type (char buf[BUFLEN])
 			v = -1;
 	}
 	return v;
+}
+
+char* get_buffer (int maxlen)
+{
+	char* buf = (char*) jb_malloc (sizeof(char) * BUFLEN);
+	memset(buf, 0x00, BUFLEN);
+	return buf;
+}
+
+char * chop_endings (char* buf, int len)
+{
+	char* buf2 = (char*) jb_malloc (sizeof(char) * len);
+	memset(buf2, 0x00, len);
+	sscanf(buf, "%*d;%[^$]", buf2);
+	return buf2;
 }
