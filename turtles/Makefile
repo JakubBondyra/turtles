@@ -1,6 +1,6 @@
 CC=gcc
-C_FLAGS=-Wall -Werror -pedantic -g -ggdb
-L_FLAGS=-lm -lrt
+C_FLAGS=-Wall -g -Werror -Wpedantic -ggdb -pthread
+L_FLAGS=-lm -lrt -lpthread
 
 #~ server and client code
 SERVER=server
@@ -44,7 +44,7 @@ all: ${CLIENT} ${SERVER} ${SPECTATOR}
 
 #~ linking
 ${SERVER}: ${SERVER_OBJ} ${SERVER_F_OBJ} ${SERVER_DATA_OBJ} ${LIB_OBJ} ${COMMON_OBJ}
-	${CC} -o ${SERVER} ${SERVER_OBJ} ${SERVER_F_OBJ} ${SERVER_DATA_OBJ} ${LIB_OBJ} ${COMMON_OBJ} ${L_FLAGS}
+	${CC} -o ${SERVER} ${SERVER_OBJ} ${SERVER_F_OBJ} ${SERVER_DATA_OBJ} ${SERVER_THREAD_OBJ} ${LIB_OBJ} ${COMMON_OBJ} ${L_FLAGS}
 	
 ${CLIENT}: ${CLIENT_OBJ} ${CLIENT_F_OBJ} ${CLIENT_DISPLAY_OBJ} ${LIB_OBJ} ${COMMON_OBJ}
 	${CC} -o ${CLIENT} ${CLIENT_OBJ} ${CLIENT_F_OBJ} ${CLIENT_DISPLAY_OBJ} ${LIB_OBJ} ${COMMON_OBJ} ${L_FLAGS}

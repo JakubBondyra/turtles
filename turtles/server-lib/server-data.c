@@ -3,7 +3,7 @@
 void read_turtles (char* filepath, struct turtle_group* t)
 {
 	FILE* f = fopen (filepath, "ab+");
-	char buf [FILELINE];
+	char* buf = get_buffer(FILELINE);
 	if (f==NULL)
 	{
 		jb_print_error("fopen:");
@@ -70,7 +70,7 @@ void save_turtles (char* filepath, struct turtle_group t)
 void read_tracks (char* filepath, struct track_group* t)
 {
 	FILE* f = fopen (filepath, "ab+");
-	char buf [FILELINE];
+	char* buf = get_buffer(FILELINE);
 	if (f==NULL)
 	{
 		jb_print_error("fopen:");
@@ -116,14 +116,22 @@ void save_track (char* filepath, struct track* t)
 	}
 }
 
-void parse_turtle (struct turtle* t, char line[FILELINE])
+void load_state (struct turtle_group** turtles, struct track_group** tracks)
+{
+	init_all(turtles, tracks);
+	read_turtles(TURTLEPATH, *turtles);
+	read_tracks(TRACKPATH, *tracks);
+	fprintf (stdout, "Server state loaded from files. Starting work...\n");
+}
+
+void parse_turtle (struct turtle* t, char* line)
 {
 	sscanf (line, "%d:%[^:]:%d:%d:%d", &(t->id), t->name, &(t->age), &(t->weight), &(t->currPoints));
 	t->currChp = -1;
 	t->currLap = -1;
 }
 
-void parse_track (struct track* t, char line[FILELINE])
+void parse_track (struct track* t, char* line)
 {
 	sscanf(line, "%[^:]:%d:%d:%d:%[0123456789,]", t->name, &(t->checkpoint_number), &(t->laps), &(t->length), t->chlengths);
 }
@@ -134,7 +142,6 @@ int get_players_from_msg (struct turtle_group* tu, char* players)
 	int* s;
 	int cval, i, j;
 	int n = 0;
-	fprintf (stdout, "Players: %s\n", players);
 	p=strtok(players, ",");
 	if (p!= NULL && sscanf(p, "%d", &cval) == 1)
 	{
@@ -248,10 +255,10 @@ void free_all (struct turtle_group* tu, struct track_group* tr)
 
 void init_all (struct turtle_group** tu, struct track_group** tr)
 {
-	*tu = (struct turtle_group*) jb_malloc (sizeof(struct turtle_group));
+	(*tu) = (struct turtle_group*) jb_malloc (sizeof(struct turtle_group));
 	(*tu)->number = 0;
 	(*tu)->turtles = NULL;
-	*tr = (struct track_group*) jb_malloc (sizeof(struct track_group));
+	(*tr) = (struct track_group*) jb_malloc (sizeof(struct track_group));
 	(*tr)->number = 0;
 	(*tr)->tracks = NULL;
 }

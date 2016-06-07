@@ -141,36 +141,28 @@ void quit_handler ()
 void add_turtle_handler (int port, char* address)
 {
 	int id, age, weight;
-	char* name = (char*) jb_malloc (sizeof(char)*NAMELEN);
+	char* name = get_buffer(NAMELEN);
 	char* buf = get_buffer(BUFLEN);
 	int len = 0;
 	memset(name, 0x00, NAMELEN);
 	if (!get_int("Please specify id of turtle", &id))
 	{
-		free(buf);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		abort_creation(buf, name);
 		return;
 	}
 	if (!get_string("Please specify name of turtle", &name, NAMELEN))
 	{
-		free(buf);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		abort_creation(buf, name);
 		return;
 	}
 	if (!get_int("Please specify age of turtle", &age))
 	{
-		free(buf);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		abort_creation(buf, name);
 		return;
 	}
 	if (!get_int("Please specify weight of turtle", &weight))
 	{
-		free(buf);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		abort_creation(buf, name);
 		return;
 	}
 	len = snprintf(buf, BUFLEN, "%d;%d:%s:%d:%d%c", ADDTURTLEID, id, name, age, weight, MSG_TERMINATOR);
@@ -187,42 +179,33 @@ void add_track_handler (int port, char* address)
 	int len = 0;
 	if (!get_string("Please specify name of track", &name, NAMELEN))
 	{
-		free(buf);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		free(chlengths);
+		abort_creation(buf, name);
 		return;
 	}
 	if (!get_int("Please specify number of checkpoints on each lap", &chpoints))
 	{
-		free(buf);
 		free(chlengths);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		abort_creation(buf, name);
 		return;
 	}
 	if (!get_int("Please specify number of laps", &laps))
 	{
-		free(buf);
 		free(chlengths);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		abort_creation(buf, name);
 		return;
 	}
 	if (!get_int("Please specify length of track", &length))
 	{
-		free(buf);
 		free(chlengths);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		abort_creation(buf, name);
 		return;
 	}
 	fprintf (stdout, "Now, specify checkpoints' distances from start.\n");
 	if (!get_comma_list("Please specify checkpoint", &chlengths, CHPTLEN, chpoints, length))
 	{
-		free(buf);
 		free(chlengths);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		abort_creation(buf, name);
 		return;
 	}
 	len = snprintf(buf, BUFLEN, "%d;%s:%d:%d:%d:%s%c", ADDTRACKID, name, chpoints, laps, length, chlengths, MSG_TERMINATOR);
@@ -239,17 +222,13 @@ void start_race_handler (int port, char* address)
 	char* players = get_buffer(CHPTLEN);
 	if (!get_string("Please specify name of track", &name, NAMELEN))
 	{
-		free(buf);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		abort_creation(buf, name);
 		return;
 	}
 	fprintf (stdout, "Now, specify participants' ids (turtle ids).\n");
 	if (!get_players("Please specify player", &players, CHPTLEN))
 	{
-		free(buf);
-		free(name);
-		fprintf (stdout, "Aborted.\n");
+		abort_creation(buf, name);
 		return;
 	}
 	len = snprintf(buf, BUFLEN, "%d;%s:%s%c", STARTRACEID, name, players, MSG_TERMINATOR);
@@ -283,7 +262,7 @@ void live_request_handler (int port, char* address)
 {
 	char* buf = get_buffer(BUFLEN);
 	int len = snprintf(buf, BUFLEN, "%d%c", LIVEREQUESTID, MSG_TERMINATOR);
-	send_request(port, address, buf, len);
+	send_live_request(port, address, buf, len);
 	free(buf);
 }
 void seq_request_handler (int port, char* address)
@@ -320,16 +299,30 @@ void send_request (int port, char* address, char* buf, int count)
 	/* send message feature */
 	int sock;
 	jb_internet_stream_socket_client(&sock, address, (uint16_t) port);
-	fprintf (stdout, "Trying to write: \"%s\" (total %d bytes)\n", buf, count);
 	dollar_write(sock, buf, count);
 	handle_response(sock);
+}
+
+void send_live_request(int port, char* address, char* buf, int count)
+{
+	/* send message feature */
+	int sock;
+	jb_internet_stream_socket_client(&sock, address, (uint16_t) port);
+	dollar_write(sock, buf, count);
+	listen_to_updates(sock);
 }
 
 void handle_response (int sock)
 {
 	char* buf = get_buffer(BUFLEN);
 	int msgid;
-	dollar_read(sock, buf, BUFLEN);
+	if (!dollar_read(sock, buf, BUFLEN))
+	{
+		fprintf (stdout, "No response received.\n");
+		jb_close(sock);
+		free(buf);
+		return;
+	}
 	if (strlen(buf) < 2)
 	{
 		fprintf (stdout, "Error of communication (too short message)\n");
@@ -355,7 +348,6 @@ void handle_response (int sock)
 	else
 	{
 		char* buf2 = chop_endings(buf, BUFLEN);
-		fprintf (stdout,"Result:\n");
 		if (msgid==GETTURTLESID)
 		{
 			display_formatted_turtles(buf2);
@@ -377,3 +369,56 @@ void handle_response (int sock)
 	jb_close(sock);
 	free(buf);
 }
+
+void abort_creation (char* buf1, char* buf2)
+{
+	free(buf1);
+	free(buf2);
+	fprintf (stdout, "Aborted.\n");
+}
+
+void listen_to_updates(int sock)
+{
+	char* buf = get_buffer(BUFLEN);
+	int msgid;
+	fprintf (stdout, "Request sent. Listening to online features...\n");
+	while (1)
+	{
+		if (!dollar_read_signal_sensitive(sock, buf, BUFLEN))
+		{
+			fprintf (stdout, "Nothing to read from socket, returning.\n");
+			jb_close(sock);
+			free(buf);
+			return;
+		}
+		msgid = get_msg_type(buf);
+		if (msgid == NEWSPOSCHANGEDID)
+		{
+			char* buf2 = chop_endings(buf, BUFLEN);
+			if (!print_pos_changed(buf2, BUFLEN))
+				break;
+		}
+		else if (msgid == NEWSRACEENDID)
+		{
+			fprintf (stdout, "Whole race has finished.\n");
+			break;
+		}
+		else if (msgid == ERRID)
+		{
+			char* buf2 = chop_endings(buf, BUFLEN);
+			fprintf(stdout, "Server reported error: %s\n", buf2);
+			free(buf2);
+			break;
+		}
+		else
+		{
+			fprintf (stdout, "Wrong response received from server.\n");
+			break;
+		}
+		memset(buf, 0x00, BUFLEN);
+	}
+	fprintf (stdout, "Listening to online features finished.\n");
+	free(buf);
+	jb_close(sock);
+}
+

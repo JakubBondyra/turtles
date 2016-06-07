@@ -10,3 +10,4 @@ void display_formatted_turtles (char* buf);
 void display_formatted_tracks (char* buf);
 void display_formatted_sequence (char* buf);
 void display_formatted_table (char* buf);
+int print_pos_changed(char* buf, int len);

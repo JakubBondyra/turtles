@@ -4,8 +4,21 @@ ssize_t dollar_read(int sock, char* buf, size_t size)
 {
 	ssize_t len = bulk_dollar_read(sock, buf, size);
 	if(len <0 && errno == ECONNRESET)
+	{
+		fprintf (stderr, "Connection reset. Returning.\n");
 		return 0;
-	fprintf (stdout, "Received %d bytes from socket.\n", (int)len);
+	}
+	return len;
+}
+
+ssize_t dollar_read_signal_sensitive(int sock, char* buf, size_t size)
+{
+	ssize_t len = bulk_dollar_read_signal_sensitive(sock, buf, size);
+	if(len <0 && errno == ECONNRESET)
+	{
+		fprintf (stderr, "Connection reset. Returning.\n");
+		return 0;
+	}
 	return len;
 }
 
@@ -13,10 +26,15 @@ ssize_t dollar_write(int sock, char* buf, size_t size)
 {
 	ssize_t len = bulk_dollar_write(sock, buf, size);
 	if(len < 0 && errno == EPIPE)
+	{
+		fprintf (stderr, "The other end is closed. Returning.\n");
 		return 0;
+	}
 	if(len <0 && errno == ECONNRESET)
+	{
+		fprintf (stderr, "Connection reset. Returning.\n");
 		return 0;
-	fprintf (stdout, "Printed %d bytes to socket.\n", (int)len);
+	}
 	return len;
 }
 
@@ -63,6 +81,34 @@ ssize_t bulk_dollar_read(int fd, void *buf, size_t size)
 	return size-nleft;
 }
 
+ssize_t bulk_dollar_read_signal_sensitive(int fd, void *buf, size_t size)
+{
+	size_t nleft = size;
+	ssize_t nread;
+	char *p = buf;
+
+	while (nleft > 0)
+	{
+		if (((nread = (read(fd, p, nleft))) == -1) && errno != EINTR)
+		{
+			jb_print_error("read");
+		}
+		if (errno == EINTR)
+		{
+			fprintf (stdout, "Signal detected. Aborting read operation.\n");
+			return 0;
+		}
+		nleft -= nread;
+		p += nread;
+		/* EOF case */
+		if (nread == 0)
+			break;
+		if (*(p-1) == MSG_TERMINATOR)
+			break;
+	}
+	return size-nleft;
+}
+
 void print_error(int fd, char* msg)
 {
 	char* buf = get_buffer(BUFLEN);
@@ -79,7 +125,7 @@ void print_success(int fd)
 	free(buf);
 }
 
-int get_msg_type (char buf[BUFLEN])
+int get_msg_type (char* buf)
 {
 	int v = -1;
 	

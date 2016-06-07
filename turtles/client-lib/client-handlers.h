@@ -44,7 +44,10 @@ void tab_request_handler (int port, char* address);
 void get_turtles_handler (int port, char* address);
 void get_tracks_handler (int port, char* address);
 void quit_handler ();
+void abort_creation (char* buf1, char* buf2);
 
-void send_request(int port, char* address, char buf[BUFLEN], int count);
+void send_request(int port, char* address, char* buf, int count);
+void send_live_request(int port, char* address, char* buf, int count);
 void handle_response(int sock);
+void listen_to_updates(int sock);
 

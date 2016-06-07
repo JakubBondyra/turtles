@@ -144,12 +144,12 @@ void display_formatted_turtles (char* buf)
 {
 	char* p;
 	int age, weight, id, pts;
-	char name [BUFLEN];
+	char* name = get_buffer(BUFLEN);
 
 	fprintf (stdout, "All players known to server:\n");
-	fprintf (stdout, "%-6s%-20s%-6s%-7s%-8s\n", "id", "name", "age", "weight", "points");
+	fprintf (stdout, "%-6s%-20s%-8s%-9s%-9s\n", "id", "name", "age", "weight", "points");
 	p = strtok(buf, ";");
-	memset(name, 0x00, BUFLEN);
+
 	sscanf(p, "%d:%[^:]:%d:%d:%d", &id, name, &age, &weight, &pts);
 	fprintf (stdout, "%-6d%-20s%-6d%-7d%-8d\n", id, name, age, weight, pts);
 
@@ -160,24 +160,28 @@ void display_formatted_turtles (char* buf)
 		memset(name, 0x00, BUFLEN);
 		if (sscanf(p, "%d:%[^:]:%d:%d:%d", &id, name, &age, &weight, &pts) != 5)
 			continue;
-		fprintf (stdout, "%-6d%-20s%-6d%-7d%-8d\n", id, name, age, weight, pts);
+		fprintf (stdout, "%-6d%-20s%-8d%-9d%-9d\n", id, name, age, weight, pts);
 	}
+	free(name);
 }
 
 void display_formatted_tracks (char* buf)
 {
 	char* p;
 	int chpoints, laps, length;
-	char name [BUFLEN];
-	char chlengths[CHPTLEN];
+	char* name = get_buffer(BUFLEN);
+	char* chlengths = get_buffer(CHPTLEN);
 
 	fprintf (stdout, "All tracks known to server:\n");
 	fprintf (stdout, "%-20s%-10s%-6s%-8s%-30s\n", "name", "chpoints", "laps", "length", "chpoint locations");
 	if (buf == NULL || strlen(buf) <4)
+	{
+		free(name);
+		free(chlengths);
 		return;
+	}
 	p = strtok(buf, ";");
-	memset(name, 0x00, BUFLEN);
-	memset(chlengths, 0x00, CHPTLEN);
+
 	sscanf(p, "%[^:]:%d:%d:%d:%[0123456789,]", name, &chpoints, &laps, &length, chlengths);
 	fprintf (stdout, "%-20s%-10d%-6d%-8d%-30s\n", name, chpoints, laps, length, chlengths);
 		
@@ -188,22 +192,27 @@ void display_formatted_tracks (char* buf)
 		memset(name, 0x00, BUFLEN);
 		if (sscanf(p, "%[^:]:%d:%d:%d:%[0123456789,]", name, &chpoints, &laps, &length, chlengths) != 5)
 			continue;
-		fprintf (stdout, "%-20s:%-10d:%-6d:%-8d%-30s\n", name, chpoints, laps, length, chlengths);
+		fprintf (stdout, "%-20s%-10d%-6d%-8d%-30s\n", name, chpoints, laps, length, chlengths);
 	}
+	free(name);
+	free(chlengths);
 }
 
 void display_formatted_sequence (char* buf)
 {
 	char* p;
 	int lap, chpoint;
-	char name [BUFLEN];
+	char* name = get_buffer(BUFLEN);
 
 	fprintf (stdout, "Current race players' positions:\n");
 	fprintf (stdout, "%-20s%-6s%-13s\n", "name", "lap", "last checkpoint");
 	if (buf == NULL || strlen(buf) <4)
+	{
+		free(name);
 		return;
+	}
 	p = strtok(buf, ";");
-	memset(name, 0x00, BUFLEN);
+
 	sscanf(p, "%[^:]:%d:%d", name, &lap, &chpoint);
 	fprintf (stdout, "%-20s%-6d%-13d\n", name, lap, chpoint);
 		
@@ -216,20 +225,24 @@ void display_formatted_sequence (char* buf)
 			continue;
 		fprintf (stdout, "%-20s%-6d%-13d\n", name, lap, chpoint);
 	}
+	free(name);
 }
 
 void display_formatted_table (char* buf)
 {
 	char* p;
 	int points;
-	char name [BUFLEN];
+	char* name = get_buffer(BUFLEN);
 	
 	fprintf (stdout, "Current season's table:\n");
 	fprintf (stdout, "%-20s%-6s\n", "name", "points");
 	if (buf == NULL || strlen(buf) <4)
+	{
+		free(name);
 		return;
+	}
 	p = strtok(buf, ";");
-	memset(name, 0x00, BUFLEN);
+
 	sscanf(p, "%[^:]:%d", name, &points);
 	fprintf (stdout, "%-20s%-6d\n", name, points);
 		
@@ -242,4 +255,21 @@ void display_formatted_table (char* buf)
 			continue;
 		fprintf (stdout, "%-20s%-6d\n", name, points);
 	}
+	free(name);
+}
+
+int print_pos_changed(char* buf, int len)
+{
+	char* who = get_buffer(NAMELEN);
+	int laps, where;
+	if (sscanf(buf, "%[^:]:%d:%d", who, &laps, &where) != 3)
+	{
+		fprintf (stderr, "Wrong message structure: \"%s\"\n", buf);
+		return 0;
+	}
+	if (laps == -1)
+		fprintf (stdout, "Turtle \"%s\" has finished the race.\n", who);
+	else
+		fprintf (stdout, "Turtle \"%s\" has reached checkpoint %d on lap %d\n", who, where, laps); 
+	return 1;
 }
