@@ -148,10 +148,16 @@ void display_formatted_turtles (char* buf)
 
 	fprintf (stdout, "All players known to server:\n");
 	fprintf (stdout, "%-6s%-20s%-8s%-9s%-9s\n", "id", "name", "age", "weight", "points");
-	p = strtok(buf, ";");
 
+	if (buf == NULL || strlen(buf) <4)
+	{
+		free(name);
+		return;
+	}
+	
+	p = strtok(buf, ";");
 	sscanf(p, "%d:%[^:]:%d:%d:%d", &id, name, &age, &weight, &pts);
-	fprintf (stdout, "%-6d%-20s%-6d%-7d%-8d\n", id, name, age, weight, pts);
+	fprintf (stdout, "%-6d%-20s%-8d%-9d%-9d\n", id, name, age, weight, pts);
 
 	while ((p = strtok(NULL, ";")) != NULL)
 	{
